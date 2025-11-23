@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Queue Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            min-width: 120px;
+            margin: 5px;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .status-pending { background-color: #fff3cd; color: #856404; }
+        .status-processing { background-color: #cce5ff; color: #004085; }
+        .status-completed { background-color: #d4edda; color: #155724; }
+        .status-failed { background-color: #f8d7da; color: #721c24; }
+        .status-partial { background-color: #fff3cd; color: #856404; }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #007bff;
+            transition: width 0.3s ease;
+        }
+        .refresh-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        .refresh-btn:hover {
+            background: #0056b3;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Job Queue Dashboard</h1>
+        
+        <button class="refresh-btn" onclick="loadJobs()">Refresh</button>
+        
+        <div id="error-message" class="error" style="display: none;"></div>
+        
+        <div class="stats" id="stats">
+            <!-- Stats will be populated by JavaScript -->
+        </div>
+        
+        <table id="jobs-table">
+            <thead>
+                <tr>
+                    <th>Job ID</th>
+                    <th>Document</th>
+                    <th>Status</th>
+                    <th>Progress</th>
+                    <th>Start Time</th>
+                    <th>End Time</th>
+                </tr>
+            </thead>
+            <tbody id="jobs-body">
+                <tr>
+                    <td colspan="6" class="loading">Loading jobs...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleString();
+        }
+        
+        function createStatusBadge(status) {
+            const badge = document.createElement('span');
+            badge.className = `status-badge status-${status}`;
+            badge.textContent = status;
+            return badge;
+        }
+        
+        function createProgressBar(percentage) {
+            const container = document.createElement('div');
+            container.className = 'progress-bar';
+            const fill = document.createElement('div');
+            fill.className = 'progress-fill';
+            fill.style.width = `${percentage}%`;
+            container.appendChild(fill);
+            return container;
+        }
+        
+        function updateStats(jobs) {
+            const stats = {
+                total: jobs.length,
+                pending: jobs.filter(job => job.status === 'pending').length,
+                processing: jobs.filter(job => job.status === 'processing').length,
+                completed: jobs.filter(job => job.status === 'completed').length,
+                failed: jobs.filter(job => job.status === 'failed').length,
+            };
+            
+            const statsHtml = `
+                <div class="stat-card">
+                    <div class="stat-number">${stats.total}</div>
+                    <div class="stat-label">Total Jobs</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.pending}</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.processing}</div>
+                    <div class="stat-label">Processing</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.completed}</div>
+                    <div class="stat-label">Completed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.failed}</div>
+                    <div class="stat-label">Failed</div>
+                </div>
+            `;
+            
+            document.getElementById('stats').innerHTML = statsHtml;
+        }
+        
+        function updateJobsTable(jobs) {
+            const tbody = document.getElementById('jobs-body');
+            
+            if (jobs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No jobs found</td></tr>';
+                return;
+            }
+            
+            const rows = jobs.map(job => `
+                <tr>
+                    <td>${job.job_id}</td>
+                    <td>${job.document_name}</td>
+                    <td>${createStatusBadge(job.status).outerHTML}</td>
+                    <td>${createProgressBar(job.progress_percentage).outerHTML} ${job.progress_percentage.toFixed(1)}%</td>
+                    <td>${formatDate(job.start_time)}</td>
+                    <td>${formatDate(job.end_time)}</td>
+                </tr>
+            `).join('');
+            
+            tbody.innerHTML = rows;
+        }
+        
+        async function loadJobs() {
+            try {
+                const response = await fetch(`${API_BASE}/jobs`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                updateStats(data.jobs);
+                updateJobsTable(data.jobs);
+                
+                document.getElementById('error-message').style.display = 'none';
+            } catch (error) {
+                console.error('Error loading jobs:', error);
+                showError(`Failed to load jobs: ${error.message}`);
+                
+                // Show error in table
+                document.getElementById('jobs-body').innerHTML = 
+                    '<tr><td colspan="6" style="text-align: center; color: #721c24;">Error loading jobs</td></tr>';
+            }
+        }
+        
+        // Load jobs on page load
+        document.addEventListener('DOMContentLoaded', loadJobs);
+        
+        // Auto-refresh every 30 seconds
+        setInterval(loadJobs, 30000);
+    </script>
+</body>
+</html>
