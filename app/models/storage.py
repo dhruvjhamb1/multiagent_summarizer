@@ -116,3 +116,7 @@ class StorageManager:
                 return None
             matches.sort(key=lambda job: job.start_time, reverse=True)
             return matches[0]
+
+    async def get_all_jobs(self) -> List[JobStorage]:
+        async with self._lock:
+            return list(self.jobs.values())

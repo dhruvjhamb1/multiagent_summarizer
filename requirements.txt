@@ -1,0 +1,16 @@
+fastapi
+uvicorn[standard]
+crewai
+crewai-tools
+python-multipart
+pypdf
+pdfplumber
+openai
+asyncio
+aiofiles
+python-dotenv
+pydantic
+pydantic-settings
+dotenv
+pytest
+gunicorn
