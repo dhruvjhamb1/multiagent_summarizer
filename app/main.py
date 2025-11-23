@@ -14,7 +14,7 @@ from fastapi import (
     status,
 )
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 from .agents.entity_extractor import EntityExtractorAgent
 from .agents.sentiment_analyzer import SentimentAnalyzerAgent
@@ -254,6 +254,12 @@ def read_root() -> Dict[str, Any]:
         "message": "Welcome to the Multi-Agent Document Analysis System",
         "version": app.version,
     }
+
+
+@app.get("/dashboard", tags=["Dashboard"])
+def dashboard():
+    """Serve the job queue dashboard."""
+    return FileResponse("static/dashboard.html", media_type="text/html")
 
 
 @app.post(
