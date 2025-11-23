@@ -9,8 +9,10 @@ class Settings(BaseSettings):
     max_file_size_mb: int = 10
     agent_timeout_seconds: int = 30
     storage_path: str = "./storage"
+    crewai_tracing_enabled: bool = False
 
     class Config:
         env_file = ".env"
+
 
 settings = Settings()
