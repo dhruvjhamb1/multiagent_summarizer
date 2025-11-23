@@ -3,7 +3,7 @@ from pathlib import Path
 from fastapi import UploadFile, HTTPException
 import aiofiles
 import pdfplumber
-import PyPDF2
+import pypdf
 from ..config import settings
 
 
@@ -36,7 +36,7 @@ def validate_file(file: UploadFile) -> bool:
 def extract_text_from_pdf(file_path: str) -> str:
     """
     Extract text from PDF file using pdfplumber as primary method,
-    with PyPDF2 as fallback. Handles corrupted PDFs gracefully.
+    with pypdf as fallback. Handles corrupted PDFs gracefully.
     """
     try:
         with pdfplumber.open(file_path) as pdf:
@@ -48,19 +48,19 @@ def extract_text_from_pdf(file_path: str) -> str:
         logger.info(f"Successfully extracted text from PDF: {file_path}")
         return text.strip()
     except Exception as e:
-        logger.warning(f"pdfplumber failed for {file_path}: {e}, trying PyPDF2")
+        logger.warning(f"pdfplumber failed for {file_path}: {e}, trying pypdf")
         try:
             with open(file_path, 'rb') as f:
-                reader = PyPDF2.PdfReader(f)
+                reader = pypdf.PdfReader(f)
                 text = ""
                 for page in reader.pages:
                     page_text = page.extract_text()
                     if page_text:
                         text += page_text + "\n"
-            logger.info(f"Successfully extracted text from PDF using PyPDF2: {file_path}")
+            logger.info(f"Successfully extracted text from PDF using pypdf: {file_path}")
             return text.strip()
         except Exception as e2:
-            logger.error(f"Both pdfplumber and PyPDF2 failed for {file_path}: {e2}")
+            logger.error(f"Both pdfplumber and pypdf failed for {file_path}: {e2}")
             raise HTTPException(
                 status_code=400,
                 detail="Failed to extract text from PDF file. The file may be corrupted or password-protected."
