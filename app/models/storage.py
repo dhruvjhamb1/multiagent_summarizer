@@ -2,7 +2,6 @@ from dataclasses import dataclass, field
 from typing import Dict, Optional, Any, List
 from datetime import datetime
 import asyncio
-import uuid
 from .schemas import Metadata, StatusEnum
 
 @dataclass
