@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict
 
 from fastapi import (
@@ -15,6 +16,7 @@ from fastapi import (
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from .agents.entity_extractor import EntityExtractorAgent
 from .agents.sentiment_analyzer import SentimentAnalyzerAgent
@@ -63,6 +65,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 storage_manager_singleton = StorageManager()
 summarizer_agent_singleton = SummarizerAgent()
@@ -259,7 +263,8 @@ def read_root() -> Dict[str, Any]:
 @app.get("/dashboard", tags=["Dashboard"])
 def dashboard():
     """Serve the job queue dashboard."""
-    return FileResponse("static/dashboard.html", media_type="text/html")
+    dashboard_path = Path(__file__).parent.parent / "static" / "dashboard.html"
+    return FileResponse(dashboard_path, media_type="text/html")
 
 
 @app.post(
