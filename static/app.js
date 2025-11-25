@@ -31,6 +31,10 @@ const handleFileSelect = file => {
     if (!['application/pdf', 'text/plain'].includes(file.type)) return showNotification('Invalid file type. Use PDF or TXT.', 'error');
     if (file.size > 10 * 1024 * 1024) return showNotification('File too large. Max 10MB.', 'error');
     
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(file);
+    fileInput.files = dataTransfer.files;
+    
     document.getElementById('file-name').textContent = file.name;
     document.getElementById('file-size').textContent = formatBytes(file.size);
     document.getElementById('file-info').classList.remove('hidden');
@@ -158,7 +162,7 @@ const displayResults = data => {
     // Summary
     if (data.results?.summary && !data.results.summary.error) {
         const s = data.results.summary;
-        content.innerHTML += `<div class="bg-white rounded-xl p-4 border"><h3 class="font-bold mb-2">📄 Summary</h3><p class="text-gray-700 text-sm">${s.text}</p>${s.key_points?.length ? `<ul class="list-disc list-inside mt-2 text-sm">${s.key_points.map(p => `<li>${p}</li>`).join('')}</ul>` : ''}<div class="flex justify-between text-xs text-gray-500 mt-3"><span>Confidence: ${(s.confidence * 100).toFixed(1)}%</span><span>Processing Time: ${s.processing_time?.toFixed(2)}s</span></div></div>`;
+        content.innerHTML += `<div class="bg-white rounded-xl p-4 border"><h3 class="font-bold mb-2">📄 Summary</h3><p class="text-gray-700 text-sm">${s.text}</p>${s.key_points?.length ? `<h5 class="font-semibold mt-4 mb-2">Key Points:</h5><ul class="list-disc list-inside mt-2 text-sm">${s.key_points.map(p => `<li>${p}</li>`).join('')}</ul>` : ''}<div class="flex justify-between text-xs text-gray-500 mt-3"><span>Confidence: ${(s.confidence * 100).toFixed(1)}%</span><span>Processing Time: ${s.processing_time?.toFixed(2)}s</span></div></div>`;
     }
     
     // Entities
