@@ -156,7 +156,55 @@ const displayResults = data => {
     
     // Metadata
     if (data.metadata) {
-        content.innerHTML += `<div class="bg-purple-50 rounded-xl p-4 border border-purple-200"><h3 class="font-bold mb-2">Metadata</h3><div class="grid grid-cols-2 gap-2 text-sm"><div>Time: ${data.metadata.total_processing_time_seconds?.toFixed(2)}s</div><div>Completed: ${data.metadata.agents_completed}</div><div>Failed: ${data.metadata.agents_failed}</div></div>${data.metadata.warning ? `<p class="text-yellow-800 text-sm mt-2">⚠️ ${data.metadata.warning}</p>` : ''}</div>`;
+        const m = data.metadata;
+        let failedAgentsHtml = '';
+        
+        if (m.failed_agents && m.failed_agents.length > 0) {
+            failedAgentsHtml = `
+                <div class="col-span-2 mt-2 p-3 bg-red-50 border border-red-200 rounded">
+                    <h4 class="font-semibold text-sm text-red-800 mb-2">Failed Agents:</h4>
+                    <div class="space-y-1">
+                        ${m.failed_agents.map(agent => {
+                            // Get error message from results if available
+                            const errorMsg = data.results?.[agent]?.error || 'Unknown error';
+                            return `<div class="text-xs text-red-700">• <span class="font-semibold">${agent.replace('_', ' ')}</span>: ${errorMsg}</div>`;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        content.innerHTML += `
+            <div class="bg-purple-50 rounded-xl p-4 border border-purple-200">
+                <h3 class="font-bold mb-3">Metadata</h3>
+                <div class="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                        <span class="text-gray-600">Processing Time:</span>
+                        <span class="font-semibold text-gray-800 ml-2">${m.total_processing_time_seconds?.toFixed(2)}s</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-600">Parallel Execution:</span>
+                        <span class="font-semibold text-gray-800 ml-2">${m.parallel_execution ? 'Yes' : 'No'}</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-600">Agents Completed:</span>
+                        <span class="font-semibold text-green-600 ml-2">${m.agents_completed}</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-600">Agents Failed:</span>
+                        <span class="font-semibold text-red-600 ml-2">${m.agents_failed}</span>
+                    </div>
+                    ${m.timestamp ? `
+                        <div class="col-span-2">
+                            <span class="text-gray-600">Timestamp:</span>
+                            <span class="font-semibold text-gray-800 ml-2">${new Date(m.timestamp).toLocaleString()}</span>
+                        </div>
+                    ` : ''}
+                    ${failedAgentsHtml}
+                </div>
+                ${m.warning ? `<p class="text-yellow-800 text-sm mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded">⚠️ ${m.warning}</p>` : ''}
+            </div>
+        `;
     }
     
     // Summary
