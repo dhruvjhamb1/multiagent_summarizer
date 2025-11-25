@@ -252,12 +252,11 @@ RESULTS_COMPLETED_EXAMPLE = {
 }
 
 
-@app.get("/", tags=["Health"])
-def read_root() -> Dict[str, Any]:
-    return {
-        "message": "Welcome to the Multi-Agent Document Analysis System",
-        "version": app.version,
-    }
+@app.get("/", tags=["UI"])
+def read_root():
+    """Serve the main web UI."""
+    index_path = Path(__file__).parent.parent / "static" / "index.html"
+    return FileResponse(index_path, media_type="text/html")
 
 
 @app.get("/dashboard", tags=["Dashboard"])
