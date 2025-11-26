@@ -19,6 +19,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from .agents.entity_extractor import EntityExtractorAgent
+from .agents.keyword_extractor import KeywordExtractorAgent
 from .agents.sentiment_analyzer import SentimentAnalyzerAgent
 from .agents.summarizer import SummarizerAgent
 from .config import settings
@@ -30,6 +31,7 @@ from .models.schemas import (
     EntityResult,
     JobList,
     JobListItem,
+    KeywordResult,
     Metadata,
     SentimentResult,
     StatusEnum,
@@ -72,11 +74,13 @@ storage_manager_singleton = StorageManager()
 summarizer_agent_singleton = SummarizerAgent()
 entity_extractor_agent_singleton = EntityExtractorAgent()
 sentiment_analyzer_agent_singleton = SentimentAnalyzerAgent()
+keyword_extractor_agent_singleton = KeywordExtractorAgent()
 orchestrator_singleton = DocumentAnalysisOrchestrator(
     storage_manager_singleton,
     summarizer_agent_singleton,
     entity_extractor_agent_singleton,
     sentiment_analyzer_agent_singleton,
+    keyword_extractor_agent_singleton,
 )
 background_service_singleton = BackgroundTaskService(orchestrator_singleton, storage_manager_singleton)
 
@@ -144,6 +148,7 @@ STATUS_SUCCESS_EXAMPLE = {
         "summarizer": "completed",
         "entity_extractor": "processing",
         "sentiment_analyzer": "pending",
+        "keyword_extractor": "pending",
     },
     "progress_percentage": 50.0,
     "start_time": "2025-11-22T10:05:00Z",
@@ -195,11 +200,15 @@ RESULTS_PARTIAL_EXAMPLE = {
             "key_phrases": [],
             "processing_time": 1.3,
         },
+        "keywords": {
+            "keywords": ["document", "analysis", "processing", "data", "system"],
+            "processing_time": 1.2,
+        },
     },
     "metadata": {
         "total_processing_time_seconds": 4.8,
         "parallel_execution": True,
-        "agents_completed": 2,
+        "agents_completed": 3,
         "agents_failed": 1,
         "timestamp": "2025-11-22T10:12:00Z",
         "warning": "Some agents failed to complete",
@@ -239,11 +248,15 @@ RESULTS_COMPLETED_EXAMPLE = {
             "key_phrases": [{"text": "strong momentum", "sentiment": "positive"}],
             "processing_time": 1.1,
         },
+        "keywords": {
+            "keywords": ["artificial intelligence", "machine learning", "data", "technology", "innovation"],
+            "processing_time": 1.3,
+        },
     },
     "metadata": {
-        "total_processing_time_seconds": 4.6,
+        "total_processing_time_seconds": 5.9,
         "parallel_execution": True,
-        "agents_completed": 3,
+        "agents_completed": 4,
         "agents_failed": 0,
         "timestamp": "2025-11-22T10:11:45Z",
         "warning": None,
@@ -520,6 +533,7 @@ async def get_status(
         "summarizer": StatusEnum.PENDING,
         "entity_extractor": StatusEnum.PENDING,
         "sentiment_analyzer": StatusEnum.PENDING,
+        "keyword_extractor": StatusEnum.PENDING,
     }
     agents_status = {**default_agent_states, **job.agents_status}
 
@@ -631,6 +645,7 @@ async def get_results(
     summary_section = build_section("summarizer", SummaryResult)
     entities_section = build_section("entity_extractor", EntityResult)
     sentiment_section = build_section("sentiment_analyzer", SentimentResult)
+    keywords_section = build_section("keyword_extractor", KeywordResult)
 
     metadata = job.metadata.model_copy() if job.metadata else None
     if metadata is None:
@@ -659,6 +674,7 @@ async def get_results(
         summary=summary_section,
         entities=entities_section,
         sentiment=sentiment_section,
+        keywords=keywords_section,
     )
 
     if job.status == StatusEnum.PARTIAL:
@@ -704,6 +720,7 @@ async def list_jobs(
             "summarizer": StatusEnum.PENDING,
             "entity_extractor": StatusEnum.PENDING,
             "sentiment_analyzer": StatusEnum.PENDING,
+            "keyword_extractor": StatusEnum.PENDING,
         }
         agents_status = {**default_agent_states, **job.agents_status}
         progress_percentage = float(calculate_progress(agents_status))

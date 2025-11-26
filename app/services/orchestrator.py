@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict
 
 from ..agents.entity_extractor import EntityExtractorAgent
+from ..agents.keyword_extractor import KeywordExtractorAgent
 from ..agents.sentiment_analyzer import SentimentAnalyzerAgent
 from ..agents.summarizer import SummarizerAgent
 from ..models.schemas import (
@@ -28,11 +29,13 @@ class DocumentAnalysisOrchestrator:
         summarizer: SummarizerAgent,
         entity_extractor: EntityExtractorAgent,
         sentiment_analyzer: SentimentAnalyzerAgent,
+        keyword_extractor: KeywordExtractorAgent,
     ) -> None:
         self.storage_manager = storage_manager
         self.summarizer = summarizer
         self.entity_extractor = entity_extractor
         self.sentiment_analyzer = sentiment_analyzer
+        self.keyword_extractor = keyword_extractor
 
     async def analyze_document(
         self,
@@ -49,6 +52,7 @@ class DocumentAnalysisOrchestrator:
                 "summarizer": StatusEnum.PROCESSING,
                 "entity_extractor": StatusEnum.PROCESSING,
                 "sentiment_analyzer": StatusEnum.PROCESSING,
+                "keyword_extractor": StatusEnum.PROCESSING,
             },
         )
 
@@ -56,6 +60,7 @@ class DocumentAnalysisOrchestrator:
             "summarizer": StatusEnum.PROCESSING,
             "entity_extractor": StatusEnum.PROCESSING,
             "sentiment_analyzer": StatusEnum.PROCESSING,
+            "keyword_extractor": StatusEnum.PROCESSING,
         }
         results_payload: Dict[str, Any] = {}
         failed_agents: Dict[str, str] = {}
@@ -84,6 +89,7 @@ class DocumentAnalysisOrchestrator:
             run_and_update_agent("summarizer", self.summarizer, document_text),
             run_and_update_agent("entity_extractor", self.entity_extractor, document_text),
             run_and_update_agent("sentiment_analyzer", self.sentiment_analyzer, document_text),
+            run_and_update_agent("keyword_extractor", self.keyword_extractor, document_text),
         )
 
         total_processing_time_seconds = round(time.perf_counter() - start_time, 4)
@@ -91,11 +97,13 @@ class DocumentAnalysisOrchestrator:
         summary_data = results_payload.get("summarizer")
         entity_data = results_payload.get("entity_extractor")
         sentiment_data = results_payload.get("sentiment_analyzer")
+        keyword_data = results_payload.get("keyword_extractor")
 
         analysis_results = AnalysisResults(
             summary=summary_data,
             entities=entity_data,
             sentiment=sentiment_data,
+            keywords=keyword_data,
         )
 
         failed_list = list(failed_agents.keys())

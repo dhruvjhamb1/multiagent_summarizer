@@ -116,7 +116,7 @@ const pollStatus = async () => {
         document.getElementById('progress-percent').textContent = `${Math.round(data.progress_percentage || 0)}%`;
         
         const agentStatus = document.getElementById('agent-status');
-        agentStatus.innerHTML = ['summarizer', 'entity_extractor', 'sentiment_analyzer'].map(agent => {
+        agentStatus.innerHTML = ['summarizer', 'entity_extractor', 'sentiment_analyzer', 'keyword_extractor'].map(agent => {
             const status = data.agents_status?.[agent] || 'pending';
             const colors = { completed: 'bg-green-500', processing: 'bg-blue-500', pending: 'bg-yellow-500', failed: 'bg-red-500' };
             return `<div class="flex justify-between"><span><span class="inline-block w-3 h-3 rounded-full mr-2 ${colors[status]}"></span>${agent.replace('_', ' ')}</span><span class="text-xs font-semibold">${status.toUpperCase()}</span></div>`;
@@ -160,13 +160,22 @@ const displayResults = data => {
         let failedAgentsHtml = '';
         
         if (m.failed_agents && m.failed_agents.length > 0) {
+            // Map agent names to result field names
+            const agentToResultField = {
+                'summarizer': 'summary',
+                'entity_extractor': 'entities',
+                'sentiment_analyzer': 'sentiment',
+                'keyword_extractor': 'keywords'
+            };
+            
             failedAgentsHtml = `
                 <div class="col-span-2 mt-2 p-3 bg-red-50 border border-red-200 rounded">
                     <h4 class="font-semibold text-sm text-red-800 mb-2">Failed Agents:</h4>
                     <div class="space-y-1">
                         ${m.failed_agents.map(agent => {
-                            // Get error message from results if available
-                            const errorMsg = data.results?.[agent]?.error || 'Unknown error';
+                            // Get error message from results using the mapped field name
+                            const resultField = agentToResultField[agent] || agent;
+                            const errorMsg = data.results?.[resultField]?.error || 'Unknown error';
                             return `<div class="text-xs text-red-700">• <span class="font-semibold">${agent.replace('_', ' ')}</span>: ${errorMsg}</div>`;
                         }).join('')}
                     </div>
@@ -252,6 +261,12 @@ const displayResults = data => {
         }
         
         content.innerHTML += `<div class="bg-white rounded-xl p-4 border"><h3 class="font-bold mb-2">😊 Sentiment</h3><div class="flex justify-between items-center mb-3"><span class="px-4 py-2 rounded font-bold ${colors[s.overall] || colors.neutral}">${s.overall?.toUpperCase()}</span><span class="text-2xl font-bold">${(s.confidence * 100).toFixed(1)}%</span></div>${s.tone ? `<div class="grid grid-cols-3 gap-2 text-xs mb-3"><div class="bg-gray-50 p-2 rounded text-center"><p class="text-gray-600">Formality</p><p class="font-semibold">${s.tone.formality}</p></div><div class="bg-gray-50 p-2 rounded text-center"><p class="text-gray-600">Urgency</p><p class="font-semibold">${s.tone.urgency}</p></div><div class="bg-gray-50 p-2 rounded text-center"><p class="text-gray-600">Objectivity</p><p class="font-semibold">${s.tone.objectivity}</p></div></div>` : ''}${emotionalHtml}${phrasesHtml}<p class="text-xs text-gray-500 mt-3">Processing Time: ${s.processing_time?.toFixed(2)}s</p></div>`;
+    }
+    
+    // Keywords
+    if (data.results?.keywords && !data.results.keywords.error) {
+        const k = data.results.keywords;
+        content.innerHTML += `<div class="bg-white rounded-xl p-4 border"><h3 class="font-bold mb-2">🔑 Keywords</h3><div class="flex flex-wrap gap-2 mb-3">${k.keywords?.map(keyword => `<span class="px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">${keyword}</span>`).join('') || '<p class="text-sm text-gray-500">No keywords found</p>'}</div><p class="text-xs text-gray-500 mt-3">Processing Time: ${k.processing_time?.toFixed(2)}s</p></div>`;
     }
     
     showNotification(data.status === 'completed' ? 'Analysis completed!' : data.status === 'partial' ? 'Partial results available' : 'Analysis failed', data.status === 'completed' ? 'success' : 'info');

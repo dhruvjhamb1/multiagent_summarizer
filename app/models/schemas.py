@@ -235,10 +235,24 @@ class SentimentResult(BaseModel):
         }
     }
 
+class KeywordResult(BaseModel):
+    keywords: List[str] = Field(..., min_length=5, max_length=5, description="List of exactly 5 keywords")
+    processing_time: float = Field(..., ge=0, description="Time taken to process in seconds")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "keywords": ["artificial intelligence", "machine learning", "data science", "neural networks", "automation"],
+                "processing_time": 1.5
+            }
+        }
+    }
+
 class AnalysisResults(BaseModel):
     summary: Optional[Union[SummaryResult, Dict[str, Any]]] = Field(None, description="Summary result or error payload")
     entities: Optional[Union[EntityResult, Dict[str, Any]]] = Field(None, description="Entity extraction result or error payload")
     sentiment: Optional[Union[SentimentResult, Dict[str, Any]]] = Field(None, description="Sentiment analysis result or error payload")
+    keywords: Optional[Union[KeywordResult, Dict[str, Any]]] = Field(None, description="Keyword extraction result or error payload")
 
 class Metadata(BaseModel):
     total_processing_time_seconds: float = Field(..., ge=0, description="Total time for all processing")
